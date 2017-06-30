@@ -1,0 +1,88 @@
+"""
+Convert to json
+"""
+
+from source.dd_api_test import dd_api
+from rest_framework import serializers
+import json
+
+class ResultSerializer(serializers.Serializer):
+	"""
+	To serialize response
+	"""
+	# OUTGOING FIELDS
+	status = serializers.IntegerField(required=False)
+	result = serializers.DictField(required=False)
+	error = serializers.DictField(required=False)
+
+	# INCOMING FIELDS
+	api_key = serializers.CharField(required=False)
+	mob = serializers.CharField(required=False)
+	sessid = serializers.CharField(
+		max_length=50, 
+		required=False,
+	)
+        data = serializers.CharField(required=False)
+        request_type = serializers.CharField(required=False)
+	
+
+	def find_error_field(self, test_fields):
+		"""
+		Checks if the input has any find_errors
+		"""
+		for key, value in test_fields.iteritems():
+			if value == None:
+				return key
+
+		return None
+
+	def validate(self, req_data):
+		"""
+		Custom validation after auto-validation is done.
+		Results are compiled and sent forward.
+		"""
+		print 'REQDATA', req_data
+		mob = req_data.pop('mob', None)
+		sessid = req_data.pop('sessid', None)
+                data = req_data.pop('data',None)
+                request_type = req_data.pop('request_type',None)
+                test_fields = {
+			'mob': mob,
+			'sessid': sessid,
+                        'data': data,
+                        'request_type': request_type,            
+		              }
+                
+		error_field = self.find_error_field(test_fields)
+
+		if error_field is not None:
+			
+			error_message = error_field + ' : this field is required'
+			error = {
+				'code': 400,
+				'message': error_message, 
+			}
+			req_data['error'] = error
+			req_data['status'] = 0
+
+		else:
+
+			result = dd_api(mob, sessid, data, request_type)
+
+			result = {
+					'code': 212,
+					'message': "Success",
+					'data': result,
+                                        'request_type': request_type,
+				}
+
+			req_data['result'] = result
+			req_data['status'] = 1
+
+			
+		return req_data
+
+
+
+
+

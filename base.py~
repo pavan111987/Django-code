@@ -1,0 +1,5 @@
+class func1:
+   def __init__(self):
+     pass
+   def text():
+     return " i am fine"
